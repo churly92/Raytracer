@@ -4,12 +4,10 @@ from collections import namedtuple
 from obj import Obj
 
 import numpy as np
-
 from numpy import sin, cos, tan
-
 import random
 
-STEPS = 2
+STEPS = 1
 
 V2 = namedtuple('Point2', ['x', 'y'])
 V3 = namedtuple('Point3', ['x', 'y', 'z'])
@@ -49,6 +47,14 @@ def baryCoords(A, B, C, P):
 
     return u, v, w
 
+def reflectVector(normal, dirVector):
+    # R = 2 * ( N . L) * N - L
+    reflect = 2 * np.dot(normal, dirVector)
+    reflect = np.multiply(reflect, normal)
+    reflect = np.subtract(reflect, dirVector)
+    reflect = reflect / np.linalg.norm(reflect)
+    return reflect
+
 
 BLACK = _color(0,0,0)
 WHITE = _color(1,1,1)
@@ -67,6 +73,10 @@ class Raytracer(object):
         self.background = None
 
         self.scene = []
+
+        self.pointLights = []
+        self.ambLight = None
+        self.dirLight = None
 
 
     def glFinish(self, filename):
@@ -173,25 +183,103 @@ class Raytracer(object):
 
 
     def cast_ray(self, orig, dir):
-        material = self.scene_intersect(orig,dir)
-        if material == None:
+        intersect = self.scene_intersect(orig,dir)
+
+        if intersect == None:
             return self.clear_color
-        else:
-            return material.diffuse
+
+        material = intersect.sceneObject.material
+
+
+        objectColor = np.array([material.diffuse[2] / 255,
+                                material.diffuse[1] / 255,
+                                material.diffuse[0] / 255] )
+        ambientColor = np.array([0,0,0])
+        dirLightColor = np.array([0,0,0])
+        pLightColor = np.array([0,0,0])
+        finalColor = np.array([0,0,0])
+
+        # Direccion de vista
+        view_dir = np.subtract(self.camPosition, intersect.point)
+        view_dir = view_dir / np.linalg.norm(view_dir)
+
+        if self.ambLight:
+            ambientColor = np.array([self.ambLight.strength * self.ambLight.color[2] / 255,
+                                     self.ambLight.strength * self.ambLight.color[1] / 255,
+                                     self.ambLight.strength * self.ambLight.color[0] / 255])
+
+        if self.dirLight:
+            diffuseColor = np.array([0,0,0])
+            specColor = np.array([0,0,0])
+
+            light_dir = np.array( self.dirLight.direction) * -1
+
+            intensity = max(0, np.dot(intersect.normal, light_dir)) * self.dirLight.intensity
+
+            diffuseColor = np.array([intensity * self.dirLight.color[2] / 255,
+                                     intensity * self.dirLight.color[1] / 255,
+                                     intensity * self.dirLight.color[0] / 255])
+
+            # Iluminacion especular
+            reflect = reflectVector(intersect.normal, light_dir)
+            spec_intensity = self.dirLight.intensity * max(0,np.dot(view_dir, reflect)) ** material.spec
+            specColor = np.array([spec_intensity * self.dirLight.color[2] / 255,
+                                  spec_intensity * self.dirLight.color[1] / 255,
+                                  spec_intensity * self.dirLight.color[0] / 255])
+
+            dirLightColor = diffuseColor + specColor
+
+
+
+        for pointLight in self.pointLights:
+            diffuseColor = np.array([0,0,0])
+            specColor = np.array([0,0,0])
+
+
+            light_dir = np.subtract(pointLight.position, intersect.point)
+            light_dir = light_dir / np.linalg.norm(light_dir)
+
+            intensity = max(0, np.dot(intersect.normal, light_dir)) * pointLight.intensity
+
+            diffuseColor = np.array([intensity * pointLight.color[2] / 255,
+                                     intensity * pointLight.color[1] / 255,
+                                     intensity * pointLight.color[0] / 255])
+
+            # Iluminacion especular
+            reflect = reflectVector(intersect.normal, light_dir)
+            spec_intensity = pointLight.intensity * max(0,np.dot(view_dir, reflect)) ** material.spec
+            specColor = np.array([spec_intensity * pointLight.color[2] / 255,
+                                  spec_intensity * pointLight.color[1] / 255,
+                                  spec_intensity * pointLight.color[0] / 255])
+
+            pLightColor = np.add(pLightColor, diffuseColor + specColor)
+
+
+        finalColor = pLightColor + ambientColor + dirLightColor
+
+        finalColor = np.array([finalColor[0] * objectColor[0],
+                               finalColor[1] * objectColor[1],
+                               finalColor[2] * objectColor[2]])
+
+        r = min(1, finalColor[0])
+        g = min(1, finalColor[1])
+        b = min(1, finalColor[2])
+    
+        return _color(r,g,b)
 
 
     def scene_intersect(self, orig, dir):
         depth = float('inf')
-        material = None
+        intersect = None
 
         for obj in self.scene:
-            intersect = obj.ray_intersect(orig,dir)
-            if intersect != None:
-                if intersect.distance < depth:
-                    depth = intersect.distance
-                    material = obj.material
+            hit = obj.ray_intersect(orig,dir)
+            if hit != None:
+                if hit.distance < depth:
+                    depth = hit.distance
+                    intersect = hit
 
-        return material
+        return intersect
 
 
 
