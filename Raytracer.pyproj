@@ -29,6 +29,8 @@
     <Compile Include="Raytracer.py" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="envmap_parqueo.bmp" />
+    <Content Include="envmap_playa.bmp" />
     <Content Include="output.bmp" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />

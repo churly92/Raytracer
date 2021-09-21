@@ -1,8 +1,14 @@
 import numpy as np
-from gl import WHITE, V3
+from gl import V3
+
+OPAQUE = 0
+REFLECTIVE = 1
+TRANSPARENT = 2
+
+WHITE = (1,1,1)
 
 class DirectionalLight(object):
-    def __init__(self, direction = V3(0,-1,0), intensity = 1, color = WHITE):
+    def __init__(self, direction = V3(0,-1,0), intensity = 1, color = WHITE ):
         self.direction = direction / np.linalg.norm(direction)
         self.intensity = intensity
         self.color = color
@@ -12,6 +18,11 @@ class AmbientLight(object):
         self.strength = strength
         self.color = color
 
+    def getColor(self):
+        return (self.strength * self.color[0],
+                self.strength * self.color[1],
+                self.strength * self.color[2])
+
 class PointLight(object):
     # Luz con punto de origen que va en todas direcciones
     def __init__(self, position = V3(0,0,0), intensity = 1, color = WHITE):
@@ -20,9 +31,10 @@ class PointLight(object):
         self.color = color
 
 class Material(object):
-    def __init__(self, diffuse = WHITE, spec = 1):
+    def __init__(self, diffuse = WHITE, spec = 1, matType = OPAQUE):
         self.diffuse = diffuse
         self.spec = spec
+        self.matType = matType
 
 
 class Intersect(object):
