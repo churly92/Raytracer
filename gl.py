@@ -56,6 +56,54 @@ def reflectVector(normal, dirVector):
     return reflect
 
 
+def refractVector(normal, dirVector, ior):
+    # Snell's Law
+    cosi = max(-1, min(1 , np.dot(dirVector, normal)))
+    etai = 1
+    etat = ior
+
+    if cosi < 0:
+        cosi = -cosi
+    else:
+        etai, etat = etat, etai
+        normal = np.array(normal) * -1
+
+    eta = etai/etat
+    k = 1 - eta * eta * (1 - (cosi * cosi))
+
+    if k < 0: #Total Internal Reflection
+        return None
+
+    R = eta * np.array(dirVector) + (eta * cosi - k**0.5) * normal
+    return R / np.linalg.norm(R)
+
+
+def fresnel(normal, dirVector, ior):
+    cosi = max(-1, min(1 , np.dot(dirVector, normal)))
+    etai = 1
+    etat = ior
+
+    if cosi > 0:
+        etai, etat = etat, etai
+
+    sint = etai / etat * (max(0, 1 - cosi * cosi) ** 0.5)
+
+    if sint >= 1: #Total internal reflection
+        return 1
+
+    cost = max(0, 1 - sint * sint) ** 0.5
+    cosi = abs(cosi)
+    Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost))
+    Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost))
+
+    return (Rs * Rs + Rp * Rp) / 2
+
+
+
+
+
+
+
 class Raytracer(object):
     def __init__(self, width, height):
         #Constructor
@@ -218,6 +266,8 @@ class Raytracer(object):
         pLightColor = np.array([0,0,0])
         finalSpecColor = np.array([0,0,0])
         reflectColor = np.array([0,0,0])
+        refractColor = np.array([0,0,0])
+
 
 
 
@@ -297,6 +347,25 @@ class Raytracer(object):
                                      reflectColor[2]])
 
             finalColor = reflectColor + finalSpecColor
+
+        elif material.matType == TRANSPARENT:
+            outside = np.dot(dir, intersect.normal) < 0
+            bias = 0.001 * intersect.normal
+            kr = fresnel(intersect.normal, dir, material.ior)
+
+            reflect = reflectVector(intersect.normal, np.array(dir) * -1)
+            reflectOrig = np.add(intersect.point, bias) if outside else np.subtract(intersect.point, bias)
+            reflectColor = self.cast_ray(reflectOrig, reflect, None, recursion + 1)
+            reflectColor = np.array(reflectColor)
+
+            if kr < 1:
+                refract = refractVector(intersect.normal, dir, material.ior )
+                refractOrig = np.subtract(intersect.point, bias) if outside else np.add(intersect.point, bias)
+                refractColor = self.cast_ray(refractOrig, refract, None, recursion + 1)
+                refractColor = np.array(refractColor)
+
+            finalColor = reflectColor * kr + refractColor * (1 - kr) + finalSpecColor
+
 
 
         # Le aplicamos el color del objeto

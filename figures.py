@@ -31,9 +31,10 @@ class PointLight(object):
         self.color = color
 
 class Material(object):
-    def __init__(self, diffuse = WHITE, spec = 1, matType = OPAQUE):
+    def __init__(self, diffuse = WHITE, spec = 1, ior = 1, matType = OPAQUE):
         self.diffuse = diffuse
         self.spec = spec
+        self.ior = ior
         self.matType = matType
 
 
