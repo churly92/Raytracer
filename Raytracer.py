@@ -17,6 +17,9 @@ water = Material(spec = 64, ior = 1.33, matType = TRANSPARENT)
 glass = Material(spec = 64, ior = 1.5, matType = TRANSPARENT)
 diamond = Material(spec = 64, ior = 2.417, matType = TRANSPARENT)
 
+earth = Material(texture = Texture('earthDay.bmp'))
+box = Material(texture = Texture('box.bmp'))
+
 
 # Inicializacion
 rtx = Raytracer(width,height)
@@ -28,14 +31,8 @@ rtx.dirLight = DirectionalLight(direction = V3(1, -1, -2), intensity = 0.5)
 rtx.pointLights.append( PointLight(position = V3(0, 2, 0), intensity = 0.5))
 
 # Objetos
-rtx.scene.append( Sphere(V3(-2,2,-8), 1, mirror) )
-rtx.scene.append( Sphere(V3(2,2,-8), 1, glass) )
-
-rtx.scene.append( AABB(V3(-2,-2,-8), V3(2,2,2), mirror) )
-rtx.scene.append( AABB(V3(2,-2,-8), V3(2,2,2), glass) )
-
-
-
+rtx.scene.append( Sphere(V3(0,0,-8), 2, earth) )
+rtx.scene.append( AABB(V3(0,-3,-8), V3(5,0.1,5), box) )
 
 
 # Terminar

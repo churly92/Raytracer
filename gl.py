@@ -339,12 +339,14 @@ class Raytracer(object):
         if material.matType == OPAQUE:
             finalColor = pLightColor + ambientColor + dirLightColor + finalSpecColor
 
+            if material.texture and intersect.texCoords:
+                texColor = material.texture.getColor(intersect.texCoords[0], intersect.texCoords[1] )
+                finalColor *= np.array(texColor)
+
         elif material.matType == REFLECTIVE:
             reflect = reflectVector(intersect.normal, np.array(dir) * -1)
             reflectColor = self.cast_ray(intersect.point, reflect, intersect.sceneObject, recursion + 1)
-            reflectColor = np.array([reflectColor[0],
-                                     reflectColor[1],
-                                     reflectColor[2]])
+            reflectColor = np.array(reflectColor)
 
             finalColor = reflectColor + finalSpecColor
 
